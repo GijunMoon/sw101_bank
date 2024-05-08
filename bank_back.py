@@ -109,8 +109,4 @@ def login(optional):
         bank.view_database()
 
 if __name__ == "__main__":
-<<<<<<< HEAD
     front.start()
-=======
-    front.start()
->>>>>>> dc26438d2113d9e60dd5dcf53377b14d3ec0a383

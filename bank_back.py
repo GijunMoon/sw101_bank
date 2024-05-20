@@ -4,35 +4,35 @@
 #       pip install pandas
 #run with cmd!! 없으면 오류나요
 
-import main as front
-import pickle
-import pandas as pd
-import random
+import main as front #메뉴 화면
+import pickle        #DB 저장 lib
+import pandas as pd  #DataFrame lib
+import random        #계좌 번호 생성용 (random lib)
 
-class TransactionLog:
-    def __init__(self):
+class TransactionLog: #class: 이체 기록 남기기
+    def __init__(self): #__init__는 class 초기 실행시 작동합니다.
         try:
-            with open('transaction_log.pkl', 'rb') as f:
+            with open('transaction_log.pkl', 'rb') as f: #읽기모드
                 self.data = pickle.load(f)
-        except FileNotFoundError:
+        except FileNotFoundError: #db없는 경우 db생성
             self.data = pd.DataFrame(columns=['송금자', '수취인', '이체액'])
             self.save_data()
 
-    def save_data(self):
-        with open('transaction_log.pkl', 'wb') as f:
+    def save_data(self): #db 저장 기능
+        with open('transaction_log.pkl', 'wb') as f: #쓰기모드
             pickle.dump(self.data, f)
 
-    def log_transaction(self, sender, receiver, amount):
+    def log_transaction(self, sender, receiver, amount):#class 참조, 송금자, 수취인, 이체액
         new_row = {'송금자': sender, '수취인': receiver, '이체액': amount}
-        self.data.loc[len(self.data)] = new_row
+        self.data.loc[len(self.data)] = new_row #데이터에 맞는 열 생성
         self.save_data()
 
-    def view_database(self):
+    def view_database(self): #db 확인 : TODO - 은행 계좌를 가진 전체 고객 수, 개인고객 수, 법인고객 수, 당일의 은행 전체 잔액(잔고), 전체 입출금 내역이 담긴 보고서를 볼 수 있는 서비스를 제공
         print(self.data)
 
 class Bank:
     def __init__(self):
-        self.transaction_log = TransactionLog()
+        self.transaction_log = TransactionLog() #이체 기록 참조
 
         try:
             with open('db.pkl', 'rb') as f:
@@ -45,71 +45,77 @@ class Bank:
         with open('db.pkl', 'wb') as f:
             pickle.dump(self.data, f)
 
-    def create_account(self, name, password, initial_balance, customer_type, name_ceo, name_charge):
-        account_number = self.generate_account_number()
-        account = self.data[(self.data['이름'] == name)]
+    def create_account(self, name, password, initial_balance, customer_type, name_ceo, name_charge): #계좌 개설
+        account_number = self.generate_account_number() #계좌 번호 생성
+        #### 동일 이름을 가진 계좌 정보가 있는지 확인 ####
+        account = self.data[(self.data['이름'] == name)] 
 
-        try:
+        try: #.iloc => 데이터값이 없을 경우 오류 출력. <= try-except 문으로 예외처리하여 해결
             if account['이름'].iloc[0] == name:
                 print("이미 개설된 고객입니다.")
                 return None
+        ###############################################
         except:
             new_row = {'이름': name, '계좌번호': account_number, '비밀번호': password, '잔고': initial_balance, '고객구분': customer_type, '법인대표': name_ceo, '담당직원': name_charge}
             self.data.loc[len(self.data)] = new_row
             self.save_data()
             print(f"{name}님의 계좌가 생성되었습니다. 계좌번호는 {account_number} 입니다.")
+        ###############################################
 
-    def find_account(self, name, password, name_ceo=None, name_charge=None):
-        if name_ceo and name_charge:
+    def find_account(self, name, password, name_ceo=None, name_charge=None, account_number=None): #계좌 조회
+        if name_ceo and name_charge: #법인 고객인 경우
             account = self.data[(self.data['이름'] == name) & (self.data['비밀번호'] == password) & (self.data['법인대표'] == name_ceo) & (self.data['담당직원'] == name_charge)]
-        else:
+        else: #법인 고객이 아닌 경우
             account = self.data[(self.data['이름'] == name) & (self.data['비밀번호'] == password)]
         
-        if account.empty:
+        if account.empty: #정보가 없는 경우
             return None
         return account
 
-    def view_account(self, name, password, name_ceo=None, name_charge=None):
+    def view_account(self, name, password, name_ceo=None, name_charge=None): #잔액 확인
         account = self.find_account(name, password, name_ceo, name_charge)
-        if account is None:
+        if account is None: 
             print("해당 조건에 맞는 계좌가 존재하지 않거나 비밀번호가 일치하지 않습니다.")
             return
-        balance = account['잔고'].iloc[0]
+        balance = account['잔고'].iloc[0] #잔고가 None인 케이스 존재하지 않으므로 예외처리 사용하지 않음
         print(f"고객님의 계좌 잔액은 {balance}원 입니다.")
 
-    def deposit(self, name, password, amount, name_ceo=None, name_charge=None):
-        account = self.find_account(name, password, name_ceo, name_charge)
-        if account is None:
+    def deposit(self, name, password, amount, name_ceo=None, name_charge=None): #입금
+        account = self.find_account(name, password, name_ceo, name_charge) #계좌 정보 조회
+        if account is None: 
             print("해당 조건에 맞는 계좌가 존재하지 않거나 비밀번호가 일치하지 않습니다.")
             return
         self.data.loc[account.index, '잔고'] += amount
         self.save_data()
         print(f"{account['계좌번호'].iloc[0]} 계좌에 {int(amount)}원을 입금하였습니다.")
 
-    def withdraw(self, name, password, amount, name_ceo=None, name_charge=None):
+    def withdraw(self, name, password, amount, name_ceo=None, name_charge=None): #출금
         account = self.find_account(name, password, name_ceo, name_charge)
         if account is None:
             print("해당 조건에 맞는 계좌가 존재하지 않거나 비밀번호가 일치하지 않습니다.")
             return
-        if account['잔고'].iloc[0] < amount:
+        if account['잔고'].iloc[0] < amount: #출금하고자 하는 금액보다 잔액이 적은 경우
             print("잔액이 부족합니다.")
             return
         self.data.loc[account.index, '잔고'] -= amount
         self.save_data()
         print(f"{account['계좌번호'].iloc[0]} 계좌에서 {int(amount)}원을 출금하였습니다.")
 
-    def transfer(self, name, password, destination_name, amount, name_ceo=None, name_charge=None):
-        account = self.find_account(name, password, name_ceo, name_charge)
+    def transfer(self, name, password, destination_name, amount, name_ceo=None, name_charge=None, account_number=None): #이체
+        account = self.find_account(name, password, name_ceo, name_charge, account_number)
         if account is None:
             print("해당 조건에 맞는 계좌가 존재하지 않거나 비밀번호가 일치하지 않습니다.")
             return
-
-        destination_account = self.data[self.data['이름'] == destination_name]
+        
+        if account_number: #계좌로 찾기와 이름으로 찾기 모드
+            destination_account = self.data[self.data['계좌번호'] == account_number]
+        else:
+            destination_account = self.data[self.data['이름'] == destination_name]
         if destination_account.empty:
             print("해당 수취인 계좌가 존재하지 않습니다.")
             return
 
-        if account['잔고'].iloc[0] < amount + 1000:
+        if account['잔고'].iloc[0] < amount + 1000: #이체액 + 수수료보다 잔액이 없는 경우
             print("잔액이 부족합니다.")
             return
 
@@ -117,12 +123,14 @@ class Bank:
         self.data.loc[account.index, '잔고'] -= (amount + 1000)
         self.data.loc[destination_account.index, '잔고'] += amount
         self.save_data()
-        print(f"{destination_account['계좌번호'].iloc[0]} ( {destination_name} 님 ) 계좌에 {int(amount)}원을 입금하였습니다.")
+        fin_destination_name = destination_account['이름'].iloc[0]
+
+        print(f"{destination_account['계좌번호'].iloc[0]} ( {fin_destination_name} 님 ) 계좌에 {int(amount)}원을 입금하였습니다.")
         balance = account['잔고'].iloc[0] - (amount + 1000)
-        self.transaction_log.log_transaction(name, destination_name, amount)
+        self.transaction_log.log_transaction(name, fin_destination_name, amount)
         print(f"고객님의 계좌 잔액은 {balance}원 입니다.")
 
-    def close_account(self, name, password, name_ceo=None, name_charge=None):
+    def close_account(self, name, password, name_ceo=None, name_charge=None): #해지
         account = self.find_account(name, password, name_ceo, name_charge)
         if account is None:
             print("해당 조건에 맞는 계좌가 존재하지 않거나 비밀번호가 일치하지 않습니다.")
@@ -157,12 +165,12 @@ def login(optional):
             return
         customer_type = input("고객 구분을 입력하세요 (개인 또는 법인): ")
         if customer_type == '개인':
-            isStudent = input("학생 고객에 해당하십니까? (Y/N): ")
-            if isStudent == 'Y':
+            isStudent = input("학생 / 직장인 / 사업가 중 어느 유형에 해당하십니까? (택 1): ")
+            if isStudent == '학생':
                 print("환영합니다. 학생 고객 혜택으로 1만원이 지급 되었습니다.")
                 initial_balance = initial_balance + 10000
                 bank.create_account(name, password, initial_balance, customer_type, None, None)
-            elif isStudent == 'N':
+            elif isStudent == '직장인' or isStudent == '사업가':
                 bank.create_account(name, password, initial_balance, customer_type, None, None)
         if customer_type == '법인':
             name_ceo = input("법인 대표의 이름을 입력하세요: ")
@@ -192,14 +200,7 @@ def login(optional):
         if amount % 10000:
             print("입금은 만원 단위로 가능합니다.")
             return
-        
-        customer_type = input("고객 구분을 입력하세요 (개인 또는 법인): ")
-        if customer_type == '법인':
-            name_ceo = input("법인 대표의 이름을 입력하세요: ")
-            name_charge = input("담당직원 이름을 입력하세요: ")
-            bank.deposit(name, password, amount, name_ceo, name_charge)
-        else:
-            bank.deposit(name, password, amount)
+        bank.deposit(name, password, amount)
 
     elif(optional == "출금"):
         name = input("이름을 입력하세요: ")
@@ -212,13 +213,7 @@ def login(optional):
             print("출금은 만원 단위로 가능합니다.")
             return
         
-        customer_type = input("고객 구분을 입력하세요 (개인 또는 법인): ")
-        if customer_type == '법인':
-            name_ceo = input("법인 대표의 이름을 입력하세요: ")
-            name_charge = input("담당직원 이름을 입력하세요: ")
-            bank.withdraw(name, password, amount, name_ceo, name_charge)
-        else:
-            bank.withdraw(name, password, amount)
+        bank.withdraw(name, password, amount)
 
     elif(optional == "이체"):
         name = input("이름을 입력하세요: ")
@@ -228,25 +223,16 @@ def login(optional):
             print("입력 오류")
             return
         
-        destination_name = input("이체하실 계좌의 고객 이름을 입력하세요: ")
-        customer_type = input("고객 구분을 입력하세요 (개인 또는 법인): ")
-        if customer_type == '법인':
-            name_ceo = input("법인 대표의 이름을 입력하세요: ")
-            name_charge = input("담당직원 이름을 입력하세요: ")
-            bank.transfer(name, password, destination_name, amount, name_ceo, name_charge)
+        destination_name = input("이체하실 계좌의 계좌 번호 혹은 고객 이름을 입력하세요: ")
+        if destination_name[0] == '7':
+            bank.transfer(name, password, None, amount, None, None, destination_name)
         else:
-            bank.transfer(name, password, destination_name, amount)
+            bank.transfer(name, password, destination_name, amount, None, None, None)
 
     elif(optional == "잔액확인"):
         name = input("이름을 입력하세요: ")
         password = input("비밀번호를 입력하세요: ")
-        customer_type = input("고객 구분을 입력하세요 (개인 또는 법인): ")
-        if customer_type == '법인':
-            name_ceo = input("법인 대표의 이름을 입력하세요: ")
-            name_charge = input("담당직원 이름을 입력하세요: ")
-            bank.view_account(name, password, name_ceo, name_charge)
-        else:
-            bank.view_account(name, password)
+        bank.view_account(name, password, None, None)
     
     elif(optional == 't'):
         bank.view_database()

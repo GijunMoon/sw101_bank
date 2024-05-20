@@ -49,14 +49,15 @@ class Bank:
         account_number = self.generate_account_number()
         account = self.data[(self.data['이름'] == name)]
 
-        if account['이름'].iloc[0] == name:
-            print("이미 개설된 고객입니다.")
-            return None
-        
-        new_row = {'이름': name, '계좌번호': account_number, '비밀번호': password, '잔고': initial_balance, '고객구분': customer_type, '법인대표': name_ceo, '담당직원': name_charge}
-        self.data.loc[len(self.data)] = new_row
-        self.save_data()
-        print(f"{name}님의 계좌가 생성되었습니다. 계좌번호는 {account_number} 입니다.")
+        try:
+            if account['이름'].iloc[0] == name:
+                print("이미 개설된 고객입니다.")
+                return None
+        except:
+            new_row = {'이름': name, '계좌번호': account_number, '비밀번호': password, '잔고': initial_balance, '고객구분': customer_type, '법인대표': name_ceo, '담당직원': name_charge}
+            self.data.loc[len(self.data)] = new_row
+            self.save_data()
+            print(f"{name}님의 계좌가 생성되었습니다. 계좌번호는 {account_number} 입니다.")
 
     def find_account(self, name, password, name_ceo=None, name_charge=None):
         if name_ceo and name_charge:

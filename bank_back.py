@@ -27,157 +27,117 @@ class TransactionLog:
         self.data.loc[len(self.data)] = new_row
         self.save_data()
 
-    def view_database(self):#DB관리 func
+    def view_database(self):
         print(self.data)
 
 class Bank:
-    def __init__(self): #DB 초기화  
+    def __init__(self):
         self.transaction_log = TransactionLog()
 
         try:
             with open('db.pkl', 'rb') as f:
                 self.data = pickle.load(f)
         except FileNotFoundError:
-            self.data = pd.DataFrame(columns=['이름', '계좌번호', '비밀번호', '잔고', '고객구분'])
+            self.data = pd.DataFrame(columns=['이름', '계좌번호', '비밀번호', '잔고', '고객구분', '법인대표', '담당직원'])
             self.save_data()
 
-    def save_data(self): #DB 저장 
+    def save_data(self):
         with open('db.pkl', 'wb') as f:
             pickle.dump(self.data, f)
 
-    def create_account(self, name, password, initial_balance, customer_type): #이름 / 비번 / 계좌번호(auto created) / 고객구분
+    def create_account(self, name, password, initial_balance, customer_type, name_ceo, name_charge):
         account_number = self.generate_account_number()
-        new_row = {'이름': name, '계좌번호': account_number, '비밀번호': password, '잔고': initial_balance, '고객구분': customer_type}
-        self.data.loc[len(self.data)] = new_row #Value Error 방지 (행 개수 맞지 않는 버그)
+        account = self.data[(self.data['이름'] == name)]
+
+        if account['이름'].iloc[0] == name:
+            print("이미 개설된 고객입니다.")
+            return None
+        
+        new_row = {'이름': name, '계좌번호': account_number, '비밀번호': password, '잔고': initial_balance, '고객구분': customer_type, '법인대표': name_ceo, '담당직원': name_charge}
+        self.data.loc[len(self.data)] = new_row
         self.save_data()
         print(f"{name}님의 계좌가 생성되었습니다. 계좌번호는 {account_number} 입니다.")
 
-    def view_account(self, account_number, password):
-        count_password = 0
-        account = self.data[self.data['계좌번호'] == account_number] #계좌번호 조회
-        if count_password >= 5:
-            print("비밀번호 5회 오류 입니다. 5분 후 다시 시도하세요.")
-            return
+    def find_account(self, name, password, name_ceo=None, name_charge=None):
+        if name_ceo and name_charge:
+            account = self.data[(self.data['이름'] == name) & (self.data['비밀번호'] == password) & (self.data['법인대표'] == name_ceo) & (self.data['담당직원'] == name_charge)]
+        else:
+            account = self.data[(self.data['이름'] == name) & (self.data['비밀번호'] == password)]
         
         if account.empty:
-            print("해당 계좌번호가 존재하지 않습니다.")
-            return
-        if account['비밀번호'].iloc[0] != password:
-            print("비밀번호가 일치하지 않습니다.")
-            count_password += 1
-            return
-        
-        balance = account['잔고'].iloc[0]
+            return None
+        return account
 
+    def view_account(self, name, password, name_ceo=None, name_charge=None):
+        account = self.find_account(name, password, name_ceo, name_charge)
+        if account is None:
+            print("해당 조건에 맞는 계좌가 존재하지 않거나 비밀번호가 일치하지 않습니다.")
+            return
+        balance = account['잔고'].iloc[0]
         print(f"고객님의 계좌 잔액은 {balance}원 입니다.")
 
-    def deposit(self, account_number, password, amount): #계좌번호 / 비번 / 출금금액
-        account = self.data[self.data['계좌번호'] == account_number] #계좌번호 조회
-        count_password = 0
-        if count_password >= 5:
-            print("비밀번호 5회 오류 입니다. 5분 후 다시 시도하세요.")
+    def deposit(self, name, password, amount, name_ceo=None, name_charge=None):
+        account = self.find_account(name, password, name_ceo, name_charge)
+        if account is None:
+            print("해당 조건에 맞는 계좌가 존재하지 않거나 비밀번호가 일치하지 않습니다.")
             return
-        
-        if account.empty:
-            print("해당 계좌번호가 존재하지 않습니다.")
-            return
-        if account['비밀번호'].iloc[0] != password:
-            print("비밀번호가 일치하지 않습니다.")
-            count_password += 1
-            return
-        self.data.loc[self.data['계좌번호'] == account_number, '잔고'] += amount
+        self.data.loc[account.index, '잔고'] += amount
         self.save_data()
-        print(f"{account_number} 계좌에 {int(amount)}원을 입금하였습니다.")
+        print(f"{account['계좌번호'].iloc[0]} 계좌에 {int(amount)}원을 입금하였습니다.")
 
-    def withdraw(self, account_number, password, amount):
-        account = self.data[self.data['계좌번호'] == account_number]
-        count_password = 0
-        if count_password >= 5:
-            print("비밀번호 5회 오류 입니다. 5분 후 다시 시도하세요.")
-            return
-        
-        if account.empty:
-            print("해당 계좌번호가 존재하지 않습니다.")
-            return
-        if account['비밀번호'].iloc[0] != password:
-            print("비밀번호가 일치하지 않습니다.")
-            count_password += 1
+    def withdraw(self, name, password, amount, name_ceo=None, name_charge=None):
+        account = self.find_account(name, password, name_ceo, name_charge)
+        if account is None:
+            print("해당 조건에 맞는 계좌가 존재하지 않거나 비밀번호가 일치하지 않습니다.")
             return
         if account['잔고'].iloc[0] < amount:
             print("잔액이 부족합니다.")
             return
-        self.data.loc[self.data['계좌번호'] == account_number, '잔고'] -= amount
+        self.data.loc[account.index, '잔고'] -= amount
         self.save_data()
-        print(f"{account_number} 계좌에서 {int(amount)}원을 출금하였습니다.")
+        print(f"{account['계좌번호'].iloc[0]} 계좌에서 {int(amount)}원을 출금하였습니다.")
 
+    def transfer(self, name, password, destination_name, amount, name_ceo=None, name_charge=None):
+        account = self.find_account(name, password, name_ceo, name_charge)
+        if account is None:
+            print("해당 조건에 맞는 계좌가 존재하지 않거나 비밀번호가 일치하지 않습니다.")
+            return
 
-    def transfer(self, account_number, password, destination_account_number, amount):
+        destination_account = self.data[self.data['이름'] == destination_name]
+        if destination_account.empty:
+            print("해당 수취인 계좌가 존재하지 않습니다.")
+            return
 
-        account = self.data[self.data['계좌번호'] == account_number] #계좌번호 조회
-        des_account = self.data[self.data['계좌번호'] == destination_account_number]
-        count_password = 0
-        
-        if count_password >= 5:
-            print("비밀번호 5회 오류 입니다. 5분 후 다시 시도하세요.")
-            return
-        if account.empty:
-            print("해당 계좌번호가 존재하지 않습니다.")
-            return
-        if account['비밀번호'].iloc[0] != password:
-            print("비밀번호가 일치하지 않습니다.")
-            count_password += 1
-            return
-        if des_account.empty:
-            print("해당 계좌번호가 존재하지 않습니다.")
-            return
-        
-        if account['잔고'].iloc[0] < amount+1000:
+        if account['잔고'].iloc[0] < amount + 1000:
             print("잔액이 부족합니다.")
             return
-        
+
         print("*이체 수수료 1000원이 발생합니다. \n수수료는 계좌에서 자동 출금 됩니다.")
-        self.data.loc[self.data['계좌번호'] == account_number, '잔고'] -= (amount+1000) #출금
-        self.data.loc[self.data['계좌번호'] == destination_account_number, '잔고'] += (amount) #입금
+        self.data.loc[account.index, '잔고'] -= (amount + 1000)
+        self.data.loc[destination_account.index, '잔고'] += amount
         self.save_data()
-        print(f"{destination_account_number} ( {des_account['이름'].iloc[0]} 님 )계좌에 {int(amount)}원을 입금하였습니다.")
-
-        balance = account['잔고'].iloc[0] - (amount+1000)
-
-        self.transaction_log.log_transaction(account_number, destination_account_number, amount)
-
+        print(f"{destination_account['계좌번호'].iloc[0]} ( {destination_name} 님 ) 계좌에 {int(amount)}원을 입금하였습니다.")
+        balance = account['잔고'].iloc[0] - (amount + 1000)
+        self.transaction_log.log_transaction(name, destination_name, amount)
         print(f"고객님의 계좌 잔액은 {balance}원 입니다.")
 
-    def close_account(self, account_number, password):
-        account = self.data[self.data['계좌번호'] == account_number]
-        count_password = 0
-        if count_password >= 5:
-            print("비밀번호 5회 오류 입니다. 5분 후 다시 시도하세요.")
+    def close_account(self, name, password, name_ceo=None, name_charge=None):
+        account = self.find_account(name, password, name_ceo, name_charge)
+        if account is None:
+            print("해당 조건에 맞는 계좌가 존재하지 않거나 비밀번호가 일치하지 않습니다.")
             return
-        if account.empty:
-            print("해당 계좌번호가 존재하지 않습니다.")
-            return
-        if account['비밀번호'].iloc[0] != password:
-            print("비밀번호가 일치하지 않습니다.")
-            count_password += 1
-            return
-        self.data = self.data[self.data['계좌번호'] != account_number]
+        self.data = self.data[self.data['계좌번호'] != account['계좌번호'].iloc[0]]
         self.save_data()
-        print(f"{account_number} 계좌가 해지되었습니다.")
+        print(f"{account['계좌번호'].iloc[0]} 계좌가 해지되었습니다.")
 
-    def generate_account_number(self):#랜덤 계좌번호 생성기
-        return '772-' + ''.join([str(random.randint(1000, 9999))]) + '-0114' #772-nnnn-0114 형식
-    
-    def view_database(self):#DB관리 func
+    def generate_account_number(self):
+        return '772-' + ''.join([str(random.randint(1000, 9999))]) + '-0114'
+
+    def view_database(self):
         print(self.data)
 
 
-
-
-
-######################################################
-
-
-
+#######################################################################################################
 
 def login(optional):
     bank = Bank()
@@ -187,40 +147,107 @@ def login(optional):
         name = input("이름을 입력하세요: ")
         password = input("비밀번호를 입력하세요: ")
         initial_balance = int(input("최초 입금 금액을 입력하세요: "))
-        customer_type = input("고객 구분을 입력하세요 (0 또는 1): ") #0: 법인고객 #1:개인고객
-        bank.create_account(name, password, initial_balance, customer_type)
+        if initial_balance < 0:
+            print("입력 오류")
+            return
+        
+        if initial_balance < 10000:
+            print("최초 입금 금액의 최소액은 1만원 입니다.")
+            return
+        customer_type = input("고객 구분을 입력하세요 (개인 또는 법인): ")
+        if customer_type == '개인':
+            isStudent = input("학생 고객에 해당하십니까? (Y/N): ")
+            if isStudent == 'Y':
+                print("환영합니다. 학생 고객 혜택으로 1만원이 지급 되었습니다.")
+                initial_balance = initial_balance + 10000
+                bank.create_account(name, password, initial_balance, customer_type, None, None)
+            elif isStudent == 'N':
+                bank.create_account(name, password, initial_balance, customer_type, None, None)
+        if customer_type == '법인':
+            name_ceo = input("법인 대표의 이름을 입력하세요: ")
+            name_charge = input("담당직원 이름을 입력하세요: ")
+            print("환영합니다. 법인 고객 혜택으로 십 만원이 지급 되었습니다.")
+            initial_balance = initial_balance + 100000
+            bank.create_account(name, password, initial_balance, customer_type, name_ceo, name_charge)
 
     elif(optional == "해지"):
-        account_number = input("계좌번호를 입력하세요: ")
+        name = input("이름을 입력하세요: ")
         password = input("비밀번호를 입력하세요: ")
-        bank.close_account(account_number, password)
+        customer_type = input("고객 구분을 입력하세요 (개인 또는 법인): ")
+        if customer_type == '법인':
+            name_ceo = input("법인 대표의 이름을 입력하세요: ")
+            name_charge = input("담당직원 이름을 입력하세요: ")
+            bank.close_account(name, password, name_ceo, name_charge)
+        else:
+            bank.close_account(name, password)
 
     elif(optional == "입금"):
-        account_number = input("계좌번호를 입력하세요: ")
+        name = input("이름을 입력하세요: ")
         password = input("비밀번호를 입력하세요: ")
         amount = int(input("입금할 금액을 입력하세요: "))
-        bank.deposit(account_number, password, amount)
+        if amount < 0:
+            print("입력 오류")
+            return
+        if amount % 10000:
+            print("입금은 만원 단위로 가능합니다.")
+            return
+        
+        customer_type = input("고객 구분을 입력하세요 (개인 또는 법인): ")
+        if customer_type == '법인':
+            name_ceo = input("법인 대표의 이름을 입력하세요: ")
+            name_charge = input("담당직원 이름을 입력하세요: ")
+            bank.deposit(name, password, amount, name_ceo, name_charge)
+        else:
+            bank.deposit(name, password, amount)
 
     elif(optional == "출금"):
-        account_number = input("계좌번호를 입력하세요: ")
+        name = input("이름을 입력하세요: ")
         password = input("비밀번호를 입력하세요: ")
         amount = int(input("출금할 금액을 입력하세요: "))
-        bank.withdraw(account_number, password, amount)
+        if amount < 0:
+            print("입력 오류")
+            return
+        if amount % 10000:
+            print("출금은 만원 단위로 가능합니다.")
+            return
+        
+        customer_type = input("고객 구분을 입력하세요 (개인 또는 법인): ")
+        if customer_type == '법인':
+            name_ceo = input("법인 대표의 이름을 입력하세요: ")
+            name_charge = input("담당직원 이름을 입력하세요: ")
+            bank.withdraw(name, password, amount, name_ceo, name_charge)
+        else:
+            bank.withdraw(name, password, amount)
 
     elif(optional == "이체"):
-        account_number = input("계좌번호를 입력하세요: ")
+        name = input("이름을 입력하세요: ")
         password = input("비밀번호를 입력하세요: ")
         amount = int(input("이체할 금액을 입력하세요: "))
-
-        destination_account_number = input("이체하실 계좌의 계좌번호를 입력하세요: ")
-        bank.transfer(account_number, password, destination_account_number, amount)
+        if amount < 0:
+            print("입력 오류")
+            return
+        
+        destination_name = input("이체하실 계좌의 고객 이름을 입력하세요: ")
+        customer_type = input("고객 구분을 입력하세요 (개인 또는 법인): ")
+        if customer_type == '법인':
+            name_ceo = input("법인 대표의 이름을 입력하세요: ")
+            name_charge = input("담당직원 이름을 입력하세요: ")
+            bank.transfer(name, password, destination_name, amount, name_ceo, name_charge)
+        else:
+            bank.transfer(name, password, destination_name, amount)
 
     elif(optional == "잔액확인"):
-        account_number = input("계좌번호를 입력하세요: ")
+        name = input("이름을 입력하세요: ")
         password = input("비밀번호를 입력하세요: ")
-        bank.view_account(account_number, password)
+        customer_type = input("고객 구분을 입력하세요 (개인 또는 법인): ")
+        if customer_type == '법인':
+            name_ceo = input("법인 대표의 이름을 입력하세요: ")
+            name_charge = input("담당직원 이름을 입력하세요: ")
+            bank.view_account(name, password, name_ceo, name_charge)
+        else:
+            bank.view_account(name, password)
     
-    elif(optional == 't'): #오후 6시 이후
+    elif(optional == 't'):
         bank.view_database()
         trans.view_database()
 

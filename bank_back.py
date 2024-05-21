@@ -86,13 +86,15 @@ class Bank: #은행 기능 class
     def view_account(self, name, password, name_ceo=None, name_charge=None): #잔액 확인
         account = self.find_account(name, password, name_ceo, name_charge)
         global count_password #최상단에 정의한 count_password 변수를 이 함수 내부에서도 공유
+        while account is None and count_password < 5:
+            print("해당 조건에 맞는 계좌가 존재하지 않거나 비밀번호가 일치하지 않습니다.")
+            password = input("비밀번호를 다시 입력하세요: ")
+            count_password += 1
+            account = self.find_account(name, password, name_ceo, name_charge)
+
         if count_password >= 5:
             print("입력 5회 오류 입니다. 5분 후 다시 시도하세요.")
             count_password = 0
-            return
-        if account is None: 
-            print("해당 조건에 맞는 계좌가 존재하지 않거나 비밀번호가 일치하지 않습니다.")
-            count_password = count_password + 1
             return
         balance = account['잔고'].iloc[0] #잔고가 None인 케이스 존재하지 않으므로 예외처리 사용하지 않음
         count_password = 0
@@ -101,13 +103,15 @@ class Bank: #은행 기능 class
     def deposit(self, name, password, amount, name_ceo=None, name_charge=None): #입금
         account = self.find_account(name, password, name_ceo, name_charge) #계좌 정보 조회
         global count_password
+        while account is None and count_password < 5:
+            print("해당 조건에 맞는 계좌가 존재하지 않거나 비밀번호가 일치하지 않습니다.")
+            password = input("비밀번호를 다시 입력하세요: ")
+            count_password += 1
+            account = self.find_account(name, password, name_ceo, name_charge)
+
         if count_password >= 5:
             print("입력 5회 오류 입니다. 5분 후 다시 시도하세요.")
             count_password = 0
-            return
-        if account is None: 
-            print("해당 조건에 맞는 계좌가 존재하지 않거나 비밀번호가 일치하지 않습니다.")
-            count_password = count_password + 1
             return
         self.data.loc[account.index, '잔고'] += amount
         self.save_data()
@@ -117,13 +121,15 @@ class Bank: #은행 기능 class
     def withdraw(self, name, password, amount, name_ceo=None, name_charge=None): #출금
         account = self.find_account(name, password, name_ceo, name_charge)
         global count_password
+        while account is None and count_password < 5:
+            print("해당 조건에 맞는 계좌가 존재하지 않거나 비밀번호가 일치하지 않습니다.")
+            password = input("비밀번호를 다시 입력하세요: ")
+            count_password += 1
+            account = self.find_account(name, password, name_ceo, name_charge)
+
         if count_password >= 5:
             print("입력 5회 오류 입니다. 5분 후 다시 시도하세요.")
             count_password = 0
-            return
-        if account is None:
-            print("해당 조건에 맞는 계좌가 존재하지 않거나 비밀번호가 일치하지 않습니다.")
-            count_password = count_password + 1
             return
         if account['잔고'].iloc[0] < amount: #출금하고자 하는 금액보다 잔액이 적은 경우
             print("잔액이 부족합니다.")
@@ -137,13 +143,15 @@ class Bank: #은행 기능 class
     def transfer(self, name, password, destination_name, amount, name_ceo=None, name_charge=None, account_number=None): #이체
         account = self.find_account(name, password, name_ceo, name_charge, account_number)
         global count_password
+        while account is None and count_password < 5:
+            print("해당 조건에 맞는 계좌가 존재하지 않거나 비밀번호가 일치하지 않습니다.")
+            password = input("비밀번호를 다시 입력하세요: ")
+            count_password += 1
+            account = self.find_account(name, password, name_ceo, name_charge, account_number)
+
         if count_password >= 5:
             print("입력 5회 오류 입니다. 5분 후 다시 시도하세요.")
             count_password = 0
-            return
-        if account is None:
-            print("해당 조건에 맞는 계좌가 존재하지 않거나 비밀번호가 일치하지 않습니다.")
-            count_password = count_password + 1
             return
         
         if account_number: #계좌로 찾기와 이름으로 찾기 모드
@@ -177,13 +185,15 @@ class Bank: #은행 기능 class
     def close_account(self, name, password, name_ceo=None, name_charge=None): #해지
         account = self.find_account(name, password, name_ceo, name_charge)
         global count_password
+        while account is None and count_password < 5:
+            print("해당 조건에 맞는 계좌가 존재하지 않거나 비밀번호가 일치하지 않습니다.")
+            password = input("비밀번호를 다시 입력하세요: ")
+            count_password += 1
+            account = self.find_account(name, password, name_ceo, name_charge)
+
         if count_password >= 5:
             print("입력 5회 오류 입니다. 5분 후 다시 시도하세요.")
             count_password = 0
-            return
-        if account is None:
-            print("해당 조건에 맞는 계좌가 존재하지 않거나 비밀번호가 일치하지 않습니다.")
-            count_password = count_password + 1
             return
         self.data = self.data[self.data['계좌번호'] != account['계좌번호'].iloc[0]] #행 제거 (NaN)
         self.save_data()

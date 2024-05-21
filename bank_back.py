@@ -68,7 +68,7 @@ class Bank: #은행 기능 class
         ###############################################
         except:
             new_row = {'이름': name, '계좌번호': account_number, '비밀번호': password, '잔고': initial_balance, '고객구분': customer_type, '법인대표': name_ceo, '담당직원': name_charge}
-            self.data.loc[len(self.data)] = new_row #가장 아랫줄에 추가
+            self.data.loc[len(self.data)+1] = new_row #가장 아랫줄에 추가
             self.save_data()
             print(f"{name}님의 계좌가 생성되었습니다. 계좌번호는 {account_number} 입니다.")
         ###############################################
@@ -194,26 +194,26 @@ class Bank: #은행 기능 class
         return '772-' + ''.join([str(random.randint(1000, 9999))]) + '-0114' 
 
     def view_database(self):
+        #print(self.data)
         print("========             지 누 은 행 관 리 자 시 스 템              ========\n")
         try:
-            print("GNU 은행의 총 고객 수는 " + str(self.data.shape[0]) + " 명 입니다.")
-            a = self.data['고객구분'].value_counts()[0:len(self.data['고객구분'].value_counts())]
-            try:
-                individual = a.iloc[0]
-                print(f"GNU 은행의 총 개인고객 수는 {individual} 명 입니다.")
-            except:
-                print("GNU 은행의 총 개인고객 수는 0 명 입니다.")
+            total_customers = self.data.shape[0]
+            print(f"GNU 은행의 총 고객 수는 {total_customers} 명 입니다.")
 
-            try:
-                legal = a.iloc[1]
-                print(f"GNU 은행의 총 법인고객 수는 {legal} 명 입니다.")
-            except:
-                print("GNU 은행의 총 법인고객 수는 0 명 입니다.")
-            
-            asset = sum(self.data['잔고'].iloc[0:len(self.data['잔고'])]) #복사
-            print(f"GNU 은행의 전체 잔고는 {asset} 원 입니다.\n")
-        except:
+            # 고객구분별로 명수를 계산
+            customer_counts = self.data['고객구분'].value_counts().to_dict()
+            individual_count = customer_counts.get('개인', 0)
+            legal_count = customer_counts.get('법인', 0)
+
+            print(f"GNU 은행의 총 개인고객 수는 {individual_count} 명 입니다.")
+            print(f"GNU 은행의 총 법인고객 수는 {legal_count} 명 입니다.")
+
+            total_balance = self.data['잔고'].sum()
+            print(f"GNU 은행의 전체 잔고는 {total_balance} 원 입니다.\n")
+        except Exception as e:
+            print(f"오류가 발생했습니다: {e}")
             print("저장된 DB가 없습니다.")
+
 
 
 #######################################################################################################
@@ -302,9 +302,8 @@ def login(optional):
     elif(optional == "이체"):
         name = input("이름을 입력하세요: ")
         password = input("비밀번호를 입력하세요: ")
-        amount = int(input("이체할 금액을 입력하세요: "))
         try:
-            amount = int(input("출금할 금액을 입력하세요: "))
+            amount = int(input("이체할 금액을 입력하세요: "))
             if amount < 0:
                 print("입력 오류")
                 return

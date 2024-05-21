@@ -92,7 +92,7 @@ class Bank: #은행 기능 class
             count_password += 1
             account = self.find_account(name, password, name_ceo, name_charge)
 
-        if count_password >= 5:
+        if count_password > 5:
             print("입력 5회 오류 입니다. 5분 후 다시 시도하세요.")
             count_password = 0
             return
@@ -109,7 +109,7 @@ class Bank: #은행 기능 class
             count_password += 1
             account = self.find_account(name, password, name_ceo, name_charge)
 
-        if count_password >= 5:
+        if count_password > 5:
             print("입력 5회 오류 입니다. 5분 후 다시 시도하세요.")
             count_password = 0
             return
@@ -127,7 +127,7 @@ class Bank: #은행 기능 class
             count_password += 1
             account = self.find_account(name, password, name_ceo, name_charge)
 
-        if count_password >= 5:
+        if count_password > 5:
             print("입력 5회 오류 입니다. 5분 후 다시 시도하세요.")
             count_password = 0
             return
@@ -149,7 +149,7 @@ class Bank: #은행 기능 class
             count_password += 1
             account = self.find_account(name, password, name_ceo, name_charge, account_number)
 
-        if count_password >= 5:
+        if count_password > 5:
             print("입력 5회 오류 입니다. 5분 후 다시 시도하세요.")
             count_password = 0
             return
@@ -191,7 +191,7 @@ class Bank: #은행 기능 class
             count_password += 1
             account = self.find_account(name, password, name_ceo, name_charge)
 
-        if count_password >= 5:
+        if count_password > 5:
             print("입력 5회 오류 입니다. 5분 후 다시 시도하세요.")
             count_password = 0
             return

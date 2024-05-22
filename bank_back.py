@@ -71,6 +71,7 @@ class Bank: #은행 기능 class
             self.data.loc[len(self.data)+1] = new_row #가장 아랫줄에 추가
             self.save_data()
             print(f"{name}님의 계좌가 생성되었습니다. 계좌번호는 {account_number} 입니다.")
+            return account
         ###############################################
 
     def find_account(self, name, password, name_ceo=None, name_charge=None, account_number=None): #계좌 조회
@@ -251,9 +252,14 @@ def login(optional):
         if customer_type == '개인':
             isStudent = input("학생 / 직장인 / 사업가 중 어느 유형에 해당하십니까? (택 1): ")
             if isStudent == '학생':
-                print("환영합니다. 학생 고객 혜택으로 1만원이 지급 되었습니다.")
                 initial_balance = initial_balance + 10000
-                bank.create_account(name, password, initial_balance, customer_type, None, None)
+                a = bank.create_account(name, password, initial_balance, customer_type, None, None)
+                try:
+                    if a == None:
+                        pass
+                except:
+                    print("환영합니다. 학생 고객 혜택으로 1만원이 지급 되었습니다.")
+
             elif isStudent == '직장인' or isStudent == '사업가':
                 bank.create_account(name, password, initial_balance, customer_type, None, None)
         if customer_type == '법인':
@@ -261,7 +267,12 @@ def login(optional):
             name_charge = input("담당직원 이름을 입력하세요: ")
             print("환영합니다. 법인 고객 혜택으로 십 만원이 지급 되었습니다.")
             initial_balance = initial_balance + 100000
-            bank.create_account(name, password, initial_balance, customer_type, name_ceo, name_charge)
+            b = bank.create_account(name, password, initial_balance, customer_type, name_ceo, name_charge)
+            try:
+                if b == None:
+                    pass
+            except:
+                print("환영합니다. 법인 고객 혜택으로 십 만원이 지급 되었습니다.")
 
     elif(optional == "해지"):
         name = input("이름을 입력하세요: ")
